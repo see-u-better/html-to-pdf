@@ -26,6 +26,7 @@
         "start": "node ./server",
         "example": "node ./server/example.js",
         "test": "jest --runInBand --detectOpenHandles --verbose",
+        "test:ci": "jest --ci",
         "coverage": "jest --detectOpenHandles --collectCoverage --"
     }
 }
