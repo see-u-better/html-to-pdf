@@ -3,7 +3,7 @@ const express = require('express')
 const app = express()
 
 const MESSAGES = require('./messages')
-const { generator } = require('./generator')
+const { generator, tearDown } = require('./generator')
 const { parseUrl, signUrl, diffInSeconds } = require('./tools')
 const { color } = require('./colors')
 
@@ -28,6 +28,17 @@ app.get('/', async function (req, res) {
     const start = new Date()
 
     if (!url) {
+        const home = (process.env.HOMEPAGE ?? '')
+        const html = home != '' ? home : MESSAGES.HOMEPAGE
+        if (home.substring(0, 4) == 'http') {
+            return res.status(302)
+                .header('Location', home)
+                .send('Redirecting to ' + home)
+        } else if (home.toLowerCase() != 'false' && home != '0' && home != 'null') {
+            res.status(200)
+            res.contentType('html')
+            return res.send(html)
+        }
         return res.status(400)
             .send({
                 error: MESSAGES.MISSING_URL,

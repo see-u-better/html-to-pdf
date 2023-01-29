@@ -3,6 +3,7 @@ process.env.NODE_ENV = 'test'
 
 const fs = require('fs')
 const server = require('../server/app')
+const { init, tearDown, browser } = require('../server/generator')
 const messages = require('../server/messages')
 const request = require("supertest")
 const { signUrl } = require('../server/tools')
@@ -19,11 +20,28 @@ describe("testing health endpoint", () => {
 })
 
 describe("testing main endpoint", () => {
+    it("should return 200: HTML-TO-PDF", async () => {
+        delete process.env.HOMEPAGE
+        const url = '/'
+        const response = await request(server).get(url)
+        expect(response.statusCode, `${url} : ${response.status} : ${response.body}`).toBe(200)
+        expect(response.text, `/: ${response.status} : ${response.text}`).toEqual(messages.HOMEPAGE)
+    })
+
     it("should return 400: MISSING_URL", async () => {
+        process.env.HOMEPAGE = 'false'
         const url = '/'
         const response = await request(server).get(url)
         expect(response.statusCode, `${url} : ${response.status} : ${response.body}`).toBe(400)
         expect(response.body, `/: ${response.status} : ${response.body}`).toMatchObject({ "error": messages.MISSING_URL })
+    })
+
+    it("should return 302: REDIRECT", async () => {
+        process.env.HOMEPAGE = 'https://example.org'
+        const url = '/'
+        const response = await request(server).get(url)
+        expect(response.statusCode, `${url} : ${response.status} : ${response.body}`).toBe(302)
+        expect(response.headers.location, `/: ${response.status} : ${response.headers.location}`).toEqual('https://example.org')
     })
 
     it("should fail with a 400: INVALID_SIGNATURE", async () => {
@@ -50,6 +68,8 @@ describe("testing main endpoint", () => {
     })
 
     it("should work", async () => {
+        await init()
+
         const hashKey = process.env.PDF_HASH_KEY
         const url = 'https://example.org';
         const hash = signUrl(url, hashKey)
@@ -64,6 +84,8 @@ describe("testing main endpoint", () => {
         const fixtureContent = await pdfBlobToString(fixturePdf)
         const streamContent = await pdfBlobToString(response.body)
         expect(streamContent).toEqual(fixtureContent)
+
+        await tearDown()
     })
 
     const hashKey = process.env.PDF_HASH_KEY
@@ -72,18 +94,24 @@ describe("testing main endpoint", () => {
     const query = `?url=${encodeURIComponent(url)}&hash=${encodeURIComponent(hash)}&name=test-filename`
 
     it("should fail when the URL can't be opened", async () => {
+        await init()
         const response = await request(server).get(`/${query}&error=addressunreachable`)
         expect(response.statusCode, `${url} : ${response.status} : ${JSON.stringify(response)}`).toBe(400)
         expect(response.body).toMatchObject({ "error": messages.INVALID_URL })
+        await tearDown()
     })
     it("should proxy the URL error", async () => {
+        await init()
         const response = await request(server).get(`/${query}&status=404`)
         expect(response.statusCode, `${url} : ${response.status} : ${JSON.stringify(response)}`).toBe(404)
         expect(response.body).toMatchObject({ "error": "Not Found" })
+        await tearDown()
     })
     it("should proxy the unknown URL errors", async () => {
+        await init()
         const response = await request(server).get(`/${query}&status=499`)
         expect(response.statusCode, `${url} : ${response.status} : ${JSON.stringify(response)}`).toBe(500)
         expect(response.body).toMatchObject({ "error": "Internal Server Error" })
+        await tearDown()
     })
 })

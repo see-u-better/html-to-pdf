@@ -5,6 +5,39 @@ const { color } = require('./colors')
 const { httpException, trimTrailingSlash } = require('./tools')
 const { LaunchOptions, BrowserLaunchArgumentOptions, BrowserConnectOptions, PDFOptions } = puppeteer
 
+
+let browser = null
+let browsingContext = null
+
+async function init(puppeteerOptions = {}) {
+    const options = {
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        ...puppeteerOptions,
+    }
+    browser = await puppeteer.launch(options)
+    browsingContext = await browser.createIncognitoBrowserContext()
+    console.info(color.black(`[•] The headless chrome has been `) + color.green('started'))
+    console.info(color.black(`[•] With the options : `) + JSON.stringify(options))
+    return browser
+}
+
+async function tearDown() {
+    console.info('')
+    console.info(color.black(`[•] The headless chrome has been `) + color.red('shutdown'))
+    if (browsingContext) {
+        await browsingContext.close()
+    }
+    if (browser) {
+        await browser.close()
+    }
+    browser = null
+}
+
+function getBrowserInstance () {
+    return browser
+}
+
 /**
  * @param {String} url
  * @param {LaunchOptions|BrowserLaunchArgumentOptions|BrowserConnectOptions} puppeteerOptions 
@@ -15,11 +48,11 @@ const { LaunchOptions, BrowserLaunchArgumentOptions, BrowserConnectOptions, PDFO
  */
 async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, testData = null) {
     const proxied = [200, 201]
-    const options = {
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-        ...puppeteerOptions,
-    }
+    // const options = {
+    //     headless: true,
+    //     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    //     ...puppeteerOptions,
+    // }
     const pageOptions = {
         landscape: true,
         printBackground: true,
@@ -32,8 +65,12 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
         },
         ...puppeteerPageOptions,
     }
-    const browser = await puppeteer.launch(options)
-    const page = await browser.newPage()
+    if (!browser) {
+        await init(puppeteerOptions)
+    }
+    // const browser = await puppeteer.launch(options)
+
+    const page = await browsingContext.newPage()
     await page.setCacheEnabled(false);
 
     let error = null
@@ -68,7 +105,7 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
         await page.goto(url, { waitUntil: 'networkidle0' })
     } catch (e) {
         console.error('The page is unreachable', { url, error: e })
-        await browser.close()
+        await page.close()
         throw new httpException('INVALID_URL', 400)
     }
 
@@ -76,16 +113,19 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
     if (error) {
         const errorMessage = statuses[`${error}`]
         console.error('The page gave us an error response', { url, error, errorMessage })
-        await browser.close()
+        await page.close()
         throw new httpException(errorMessage, error)
     }
 
     const pdfStream = page.createPDFStream(pageOptions)
     const stream = await pdfStream
-    stream.on('close', async () => await browser.close())
+    stream.on('close', async () => await page.close())
     return stream
 }
 
 module.exports = {
+    init,
+    tearDown,
     generator,
+    getBrowserInstance,
 }

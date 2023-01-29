@@ -1,10 +1,10 @@
 const crypto = require('crypto')
-const { exit } = require('process')
 
 const server    = 'http://localhost:3300'
-const key       = 'xxxxxxxxxxxxxx' // replace this by the The PDF_HASH_KEY set in your .env file
-const url       = process.argv[2] ??'https://example.org'
-const filename  = process.argv[3] ?? 'mon-file.pdf'
+const key       = process.argv[2] ?? 'xxxxxxxxxxxxxx' // replace this by the The PDF_HASH_KEY set in your .env file
+const url       = process.argv[3] ?? 'https://example.org'
+const filename  = process.argv[4] ?? 'my-file'
+const paramName = process.argv[5] ?? 'name'
 
 
 // Generates the signature
@@ -16,7 +16,7 @@ const signature = crypto
 // Generates the link to download the PDF
 const signedUrl = server
     + '?url=' + encodeURIComponent(url)
-    + '&name=' + filename
+    + '&' + paramName + '=' + filename
     + '&hash=' + signature
 
 console.log(`GET ${signedUrl}`)
