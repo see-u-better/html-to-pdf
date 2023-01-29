@@ -7,7 +7,7 @@
     "main": "index.js",
     "repository": {
         "type": "git",
-        "url": "https://github.com/7ute/html-to-pdf.git"
+        "url": "https://github.com/see-u-better/html-to-pdf.git"
     },
     "dependencies": {
         "dotenv": "^10.0.0",
