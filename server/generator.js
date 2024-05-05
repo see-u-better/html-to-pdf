@@ -12,7 +12,7 @@ let browsingContext = null
 async function init(puppeteerOptions = {}) {
     const options = {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security'],
         ...puppeteerOptions,
     }
     browser = await puppeteer.launch(options)
