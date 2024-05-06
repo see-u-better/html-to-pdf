@@ -13,7 +13,7 @@ async function init(puppeteerOptions = {}) {
     console.info(color.black(`[•] `) + color.green('Init Puppeteer'))
     const options = {
         headless: true,
-        args: ['--incognito', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security'],
+        args: ['--incognito', '--no-sandbox', '--disable-setuid-sandbox', '--disable-features=site-per-process', '--disable-dev-shm-usage', '--disable-web-security'],
         ...puppeteerOptions,
     }
     browser = await puppeteer.launch(options)
@@ -139,7 +139,6 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
     }
 
     const pdf = await page.pdf()
-    await browser.close()
     return pdf
 }
 
