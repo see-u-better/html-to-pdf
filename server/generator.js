@@ -14,6 +14,7 @@ async function init(puppeteerOptions = {}) {
     const options = {
         headless: true,
         args: ['--incognito', '--no-sandbox', '--disable-setuid-sandbox', '--disable-features=site-per-process', '--disable-dev-shm-usage', '--disable-web-security'],
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH ?? null,
         ...puppeteerOptions,
     }
     browser = await puppeteer.launch(options)
