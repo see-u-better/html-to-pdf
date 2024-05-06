@@ -139,6 +139,7 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
     }
 
     const pdf = await page.pdf()
+    await page.close()
     return pdf
 }
 

@@ -18,11 +18,16 @@ const message = `
 ${color.black(`[•] The app has started on`)} ${color.blue(`localhost:${PORT}`)}
 ${color.black(`[•] It's using this hash key:`)} ${color.yellow(HASH_KEY)}`
 
-process.on('SIGINT', function (type, code) {
+const signals = [
+    'SIGHUP', 'SIGINT', 'SIGQUIT', 'SIGTRAP', 'SIGABRT',
+]
+signals.map(signal => process.on(signal, function (type, code) {
     tearDown()
-        .catch(e => console.log(`${color.black(`[•] Error during teardown`)} ${color.red(e.message)}`))
-        .then(() => process.exit(0))
-})
+        .catch(e => `${color.black(`[•] Error during teardown`)} ${color.red(e.message)}`)
+        .then(() => {
+            process.exit(code)
+        })
+}))
 
 server.listen(PORT, () => {
     console.info(message)
