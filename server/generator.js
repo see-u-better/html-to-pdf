@@ -10,13 +10,14 @@ let browser = null
 let browsingContext = null
 
 async function init(puppeteerOptions = {}) {
+    console.info(color.black(`[•] `) + color.green('Init Puppeteer'))
     const options = {
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security'],
+        args: ['--incognito', '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-web-security'],
         ...puppeteerOptions,
     }
     browser = await puppeteer.launch(options)
-    browsingContext = await browser.createIncognitoBrowserContext()
+    browsingContext = await browser.createBrowserContext()
     console.info(color.black(`[•] The headless chrome has been `) + color.green('started'))
     console.info(color.black(`[•] With the options : `) + JSON.stringify(options))
     return browser
@@ -24,17 +25,29 @@ async function init(puppeteerOptions = {}) {
 
 async function tearDown() {
     console.info('')
+    try {
+        if (browser) {
+            console.info(color.black(`[•] Closing `) + color.red('open pages'))
+            const pages = await browser.pages();
+            for (let i = 0; i < pages.length; i++) {
+                await pages[i].close();
+            }
+
+            console.info(color.black(`[•] Closing `) + color.red('browser'))
+            await browser.close()
+            const childProcess = await browser.process()
+            if (childProcess) {
+                childProcess.kill(9)
+            }
+        }
+    } catch (e) {
+        console.log(color.black(`[!] Teardown failed`), e)
+    }
     console.info(color.black(`[•] The headless chrome has been `) + color.red('shutdown'))
-    if (browsingContext) {
-        await browsingContext.close()
-    }
-    if (browser) {
-        await browser.close()
-    }
     browser = null
 }
 
-function getBrowserInstance () {
+function getBrowserInstance() {
     return browser
 }
 
@@ -42,7 +55,7 @@ function getBrowserInstance () {
  * @param {String} url
  * @param {LaunchOptions|BrowserLaunchArgumentOptions|BrowserConnectOptions} puppeteerOptions 
  * @param {PDFOptions} puppeteerPageOptions 
- * @returns {Promise<Readable>|Promise<httpException>}
+ * @returns {Promise<Buffer>|Promise<httpException>}
  *   Resolves to a stream
  *   Rejects with a 504 when the URL cannot be open, or the status code of the URL if 4xx or 5xx
  */
@@ -75,24 +88,32 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
 
     let error = null
     if (testData) {
-        testData.status = statuses[`${testData.status}`] ? testData.status : 500
-        page.setRequestInterception(true)
+        await page.setRequestInterception(true)
         page.setDefaultNavigationTimeout(10 * 1000)
         page.on('request', interceptedRequest => {
+            if (interceptedRequest.isInterceptResolutionHandled()) {
+                return
+            }
             if (testData.error) {
-                interceptedRequest.abort(testData.error) 
+                interceptedRequest.abort(testData.error)
             } else {
+                let statusText = "Server Error"
+                try {
+                    statusText = statuses(`${testData.status}`)
+                } catch (e) {}
                 interceptedRequest.respond({
-                    status: testData.status,
-                    contentType: testData.contentType ?? 'text/plain',
-                    body: testData.body ?? statuses[`${testData.status}`] 
-                });
+                    status: statuses.codes.indexOf(parseInt(testData.status)) > -1
+                        ? parseInt(testData.status)
+                        : 500,
+                    contentType: 'application/json',
+                    body: '{ "error": "" }',
+                })
             }
         })
     }
 
     page.on('response', response => {
-        
+
         console.info(color.green('GET'), response.status(), response.url(), color.black(`[${response.statusText()}]`))
         const normalizedResponseUrl = trimTrailingSlash(response.url())
         const normalizedUrl = trimTrailingSlash(url)
@@ -117,10 +138,9 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
         throw new httpException(errorMessage, error)
     }
 
-    const pdfStream = page.createPDFStream(pageOptions)
-    const stream = await pdfStream
-    stream.on('close', async () => await page.close())
-    return stream
+    const pdf = await page.pdf()
+    await browser.close()
+    return pdf
 }
 
 module.exports = {

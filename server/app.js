@@ -3,7 +3,7 @@ const express = require('express')
 const app = express()
 
 const MESSAGES = require('./messages')
-const { generator, tearDown } = require('./generator')
+const { generator, init, tearDown } = require('./generator')
 const { parseUrl, signUrl, diffInSeconds } = require('./tools')
 const { color } = require('./colors')
 
@@ -68,15 +68,16 @@ app.get('/', async function (req, res) {
     }
 
     try {
-        const pdfStream = await generator(url, puppeteerOptions, puppeteerPageOptions, testData)
+        const pdf = await generator(url, puppeteerOptions, puppeteerPageOptions, testData)
         res.setHeader('Content-Disposition', 'attachment;filename="' + filename + '.pdf"')
         res.setHeader('Content-Type', 'application/pdf')
-        pdfStream.pipe(res)
+        res.send(pdf)
         const end = new Date()
         const duration = diffInSeconds(start, end)
         console.info(color.green('[√] ') + MESSAGES.DONE_IN_SECONDS.replace(':duration', color.red(duration)));
     } catch (error) {
         console.error('Error generating the PDF', { error })
+        await tearDown()
         res.status(error.statusCode)
             .send({ error: MESSAGES[error.message] ?? error.message })
     }

@@ -9,15 +9,16 @@ describe('testing puppeteer', () => {
         expect(localBrowser).not.toBeNull()
         
         await tearDown()
-        expect(localBrowser._process.killed).toBeTruthy()
+        const procInfo = await localBrowser.process()
+        expect(procInfo?.signalCode).toBeNull()
     })
 
     it('should work', async () => {
-        const pdfStream = await generator('https://example.org/test', null, null, { status: 200, body: 'Hello world.' })
-        const blobItem = await streamToBuffer(pdfStream)
-        const streamContent = await pdfBlobToString(blobItem)
-        
+        const pdfBuffer = await generator('https://example.org/test', null, null, { status: 200, body: 'Hello world.' })
+        expect(pdfBuffer).toBeInstanceOf(Buffer)
+
         const fixturePdf = fs.readFileSync('fixtures/test.pdf')
+        const streamContent = await pdfBlobToString(pdfBuffer)
         const fixtureContent = await pdfBlobToString(fixturePdf)
         expect(streamContent).toEqual(fixtureContent)
     })
