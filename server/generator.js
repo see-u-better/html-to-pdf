@@ -140,7 +140,15 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
     }
 
     const pdf = await page.pdf({
+        displayHeaderFooter: false,
         printBackground: true,
+        preferCSSPageSize: true,
+        margin: {
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0
+        }
     })
     await page.close()
     return pdf
