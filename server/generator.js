@@ -139,7 +139,9 @@ async function generator(url, puppeteerOptions = {}, puppeteerPageOptions = {}, 
         throw new httpException(errorMessage, error)
     }
 
-    const pdf = await page.pdf()
+    const pdf = await page.pdf({
+        printBackground: true,
+    })
     await page.close()
     return pdf
 }
