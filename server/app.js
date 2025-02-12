@@ -45,6 +45,12 @@ app.get('/', async function (req, res) {
             })
     }
 
+    if (req.header('x-puppeteer-page-options') && req.header('x-puppeteer-page-options') !== '') {
+        const headerPuppeteerPageOptions = JSON.parse(req.header('x-puppeteer-page-options') ?? '{}');
+        Object.keys(headerPuppeteerPageOptions)
+            .map(k => (puppeteerPageOptions[k] = headerPuppeteerPageOptions[k]))
+    }
+
     const computedSignature = signUrl(url, hashKey)
     if (computedSignature != hash) {
         return res
@@ -60,6 +66,7 @@ app.get('/', async function (req, res) {
     }
     console.info('')
     console.info(color.blue('[i] ') + MESSAGES.GENERATING_FOR_URL.replace(':url', color.blue(url)));
+    console.info(color.black(`[•] With the page options : `) + JSON.stringify(puppeteerPageOptions))
     let testData = null
     if (isTest) {
         testData = (req.query.status == 200)
