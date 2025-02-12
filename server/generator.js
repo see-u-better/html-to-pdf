@@ -28,8 +28,8 @@ async function tearDown() {
     console.info('')
     try {
         if (browser) {
-            console.info(color.black(`[•] Closing `) + color.red('open pages'))
             const pages = await browser.pages();
+            console.info(color.black(`[•] Closing `) + color.red(pages.length + ' open page(s)'))
             for (let i = 0; i < pages.length; i++) {
                 await pages[i].close();
             }
