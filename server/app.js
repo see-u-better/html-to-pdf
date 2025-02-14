@@ -76,7 +76,7 @@ app.get('/', async function (req, res) {
 
     try {
         const pdf = await generator(url, puppeteerOptions, puppeteerPageOptions, testData)
-        res.setHeader('Content-Disposition', 'attachment;filename="' + filename + '.pdf"')
+        res.setHeader('Content-Disposition', 'attachment;filename="' + filename.replace(/\.pdf$/, '') + '.pdf"')
         res.setHeader('Content-Type', 'application/pdf')
         res.send(pdf)
         const end = new Date()
