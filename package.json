@@ -26,6 +26,7 @@
     },
     "scripts": {
         "start": "node ./server",
+        "postinstall": "./node_modules/.bin/puppeteer install chrome --install-deps",
         "example": "node ./server/example.js",
         "test": "jest --runInBand --detectOpenHandles --verbose",
         "test:ci": "jest --ci",
