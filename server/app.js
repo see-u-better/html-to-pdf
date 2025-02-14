@@ -85,7 +85,7 @@ app.get('/', async function (req, res) {
     } catch (error) {
         console.error('Error generating the PDF', { error })
         await tearDown()
-        res.status(error.statusCode)
+        res.status(error.statusCode ?? 500)
             .send({ error: MESSAGES[error.message] ?? error.message })
     }
     return res
